@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd">
+
+    <context:component-scan base-package="org.spongehah.springdemo"></context:component-scan>
+
+    <aop:aspectj-autoproxy></aop:aspectj-autoproxy>
+    
+    <bean id="messageDao" class="org.spongehah.springdemo.dao.impl.MessageDaoImpl">
+        
+    </bean>
+    
+    <bean id="user" class="org.spongehah.springdemo.beans.User">
+        <property name="name" value="张三"></property>
+        <property name="age" value="18"></property>
+        <property name="email" value="zhangsan@163.com"></property>
+    </bean>
+    
+    <bean id="messageService" class="org.spongehah.springdemo.service.impl.MessageServiceImpl">
+        <property name="messageDao" ref="messageDao"></property>
+        <property name="user" ref="user"></property>
+    </bean>
+    
+    <bean id="myBean" class="org.spongehah.springdemo.factorybean.MyBean">
+    </bean>
+    
+    <bean id="user1" class="org.spongehah.springdemo.beans.User">
+        <constructor-arg name="name" value="王五"></constructor-arg>
+        <constructor-arg name="age" value="18"></constructor-arg>
+        <constructor-arg name="email" value="ww@163.com"></constructor-arg>
+    </bean>
+    
+</beans>
