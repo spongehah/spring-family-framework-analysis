@@ -42,7 +42,8 @@ public class WebConfig implements WebMvcConfigurer {
         // 上面是原来的功能，下面是新增的功能
         mediaTypes.put("hh", MediaType.parseMediaType("application/x-hah"));
         ParameterContentNegotiationStrategy parameterStrategy = new ParameterContentNegotiationStrategy(mediaTypes);
-        configurer.strategies(Arrays.asList(headerStrategy, parameterStrategy));
+        // 必须像源码一样，先放入parameterStrategy，先放headerStrategy会导致基于参数方式失效
+        configurer.strategies(Arrays.asList(parameterStrategy,headerStrategy));
     }
 
     @Override

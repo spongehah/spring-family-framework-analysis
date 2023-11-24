@@ -541,10 +541,186 @@ public class WebConfig implements WebMvcConfigurer {
         // 上面是原来的功能，下面是新增的功能
         mediaTypes.put("hh", MediaType.parseMediaType("application/x-hah"));
         ParameterContentNegotiationStrategy parameterStrategy = new ParameterContentNegotiationStrategy(mediaTypes);
-        configurer.strategies(Arrays.asList(headerStrategy, parameterStrategy));
+        // 必须像源码一样，先放入parameterStrategy，先放headerStrategy会导致基于参数方式失效
+        configurer.strategies(Arrays.asList(parameterStrategy,headerStrategy));
     }
 }
 ```
+
+
+
+# 5 常用操作
+
+## 5.1 拦截器
+
+以简单登录拦截器为例：
+
+```java
+//登录拦截器
+@Slf4j
+public class LoginInterceptor implements HandlerInterceptor {
+
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        String requestURI = request.getRequestURI();
+        log.info("preHandle拦截的请求路径是{}",requestURI);
+        //登录检查逻辑
+        HttpSession session = request.getSession();
+        Object loginUser = session.getAttribute("loginUser");
+        if(loginUser != null){
+            //放行
+            return true;
+        }
+        //拦截住。未登录。跳转到登录页
+        request.setAttribute("msg","请先登录");
+        //re.sendRedirect("/");
+        request.getRequestDispatcher("/").forward(request,response);
+        return false;
+    }
+
+    @Override
+    public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+        HandlerInterceptor.super.postHandle(request, response, handler, modelAndView);
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        HandlerInterceptor.super.afterCompletion(request, response, handler, ex);
+    }
+}
+
+
+//添加配置
+@Configuration
+public class WebAdminConfig implements WebMvcConfigurer {
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(new LoginInterceptor())
+                .addPathPatterns("/**")
+                .excludePathPatterns("/","/login","/css/**","/fonts/**","/js/**","/images/**");
+    }
+}
+```
+
+
+
+> 拦截器的执行顺序：在笔记[《Spring源码解读》](https://blog.hahhome.top/blog/Spring%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB)中可以看出来，在《Spring重要知识点总结》中有详细说明
+
+## 5.2 文件上传
+
+表单：指明enctype="multipart/form-data"
+
+```html
+<form method="post" action="/upload" enctype="multipart/form-data">
+    <input type="file" name="file"><br>
+    <input type="submit" value="提交">
+</form>
+```
+
+文件上传代码：
+
+**推荐上传到OSS服务器**，下面给出//放到项目路径 和 //放到本机指定位置 两种写法
+
+```java
+//放到项目路径
+@PostMapping("/upload")
+public String upload(@RequestParam("email") String email,
+                     @RequestParam("username") String username,
+                     @RequestPart("headerImg")MultipartFile headerImg,
+                     @RequestPart("photos") MultipartFile[] photos,
+                     /*HttpSession session*/) throws IOException {
+    
+    //放到项目运行的web服务器(如tomcat)的真实运行路径
+    /*ServletContext servletContext = session.getServletContext();
+    String photoPath = servletContext.getRealPath("photo");*/
+    
+    //放到项目resources目录下的photo文件夹
+    File file = new File("src/main/resources/static/photo");
+    if(!file.exists()){
+        file.mkdirs();
+    }
+
+    if (!headerImg.isEmpty()) {
+        String originalFilename = headerImg.getOriginalFilename();
+        String hzName = originalFilename.substring(originalFilename.lastIndexOf("."));
+        String filename = originalFilename.substring(0,originalFilename.lastIndexOf(".")) + UUID.randomUUID().toString() + hzName;
+        headerImg.transferTo(new File(file.getAbsoluteFile() + File.separator + filename));
+    }
+    if(photos.length > 0){
+        for (MultipartFile photo : photos) {
+            if(!photo.isEmpty()){
+                String originalFilename = photo.getOriginalFilename();
+                String hzName = originalFilename.substring(originalFilename.lastIndexOf("."));
+                String filename = originalFilename.substring(0,originalFilename.lastIndexOf(".")) + UUID.randomUUID().toString() + hzName;
+                photo.transferTo(new File(file.getAbsoluteFile() + File.separator + filename));
+            }
+        }
+    }
+    return "main";
+}
+
+//放到本机指定位置
+@PostMapping("/upload")
+public String upload(@RequestParam("email") String email,
+                     @RequestParam("username") String username,
+                     @RequestPart("headerImg") MultipartFile headerImg,
+                     @RequestPart("photos") MultipartFile[] photos) throws IOException {
+    if(!headerImg.isEmpty()){
+        //保存到文件服务器，OSS服务器
+        String originalFilename = headerImg.getOriginalFilename();
+        headerImg.transferTo(new File("H:\\cache\\"+originalFilename));
+    }
+    if(photos.length > 0){
+        for (MultipartFile photo : photos) {
+            if(!photo.isEmpty()){
+                String originalFilename = photo.getOriginalFilename();
+                photo.transferTo(new File("H:\\cache\\"+originalFilename));
+            }
+        }
+    }
+    return "main";
+}
+```
+
+> 文件上传原理：在笔记[《Spring源码解读》](https://blog.hahhome.top/blog/Spring%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB)中
+
+## 5.3 文件下载
+
+简单文件下载案例：
+
+```java
+@RequestMapping("/down")
+public ResponseEntity<byte[]> testResponseEntity(HttpSession session) throws IOException {
+    //获取ServletContext对象
+    ServletContext servletContext = session.getServletContext();
+    //获取服务器中文件的真实路径
+    String realPath = servletContext.getRealPath("img");
+    realPath = realPath + File.separator + "1.jpg";/*根路径：target/untitled-1.0-SNAPSHOT/img/1.jpg*/
+    //创建输入流
+    InputStream is = new FileInputStream(realPath);
+    //创建字节数组
+    byte[] bytes = new byte[is.available()];
+    //将流读到字节数组中
+    is.read(bytes);
+    //创建HttpHeaders对象设置响应头信息
+    MultiValueMap<String, String> headers = new HttpHeaders();
+    //设置要下载方式以及下载文件的名字
+    headers.add("Content-Disposition", "attachment;filename=1.jpg");
+    //设置响应状态码
+    HttpStatus statusCode = HttpStatus.OK;
+    //创建ResponseEntity对象
+    ResponseEntity<byte[]> responseEntity = new ResponseEntity<>(bytes, headers, statusCode);
+    //关闭输入流
+    is.close();
+    return responseEntity;
+}
+```
+
+
+
+
+
+
 
 
 

@@ -386,7 +386,7 @@ protected void doDispatch(HttpServletRequest request, HttpServletResponse respon
 			if (asyncManager.isConcurrentHandlingStarted()) {
 				return;
 			}
- 
+ 			// 返回的mv中的视图地址view如果为空，就设置一个默认的地址为uri的最后一个路径
 			applyDefaultViewName(processedRequest, mv);
 
 			// 6.拦截器的后处理方法
@@ -424,8 +424,8 @@ protected void doDispatch(HttpServletRequest request, HttpServletResponse respon
    - 5.实际的处理器**`handlerAdapter.handle()`**处理请求，返回结果视图对象ModelAndView
      - 要根据url确定Controller中处理请求的方法，然后通过反射获取该方法上的注解和参数，解析方法和参数上的注解，最后反射调用方法获取ModelAndView结果视图
    - 6.倒序执行所有拦截器的`后处理`postHandle方法(前提是拦截器返回都为true)
-   - 7.processDispatchResult()
-     - 7.1.获取视图名称并渲染视图
+   - 7.processDispatchResult()处理派发结果：
+     - 7.1.获取视图名称获得视图对象，渲染视图
      - 7.2.倒序执行所有拦截器的afterCompletion方法(前提是拦截器返回都为true)
    
 
@@ -595,16 +595,17 @@ handlerMapping保存的映射规则：
 
 
 
-## SpringBoot参数处理原理
+## SpringBoot参数处理、数据响应、视图解析原理
 
 > 这里的参数处理即，上面 在SpringMVC源码解读中的处理请求流程，中的第2.3~2.7步：获取HandlerAdapter，然后执行ha.handle()方法，进行参数处理和方法执行
 >
 > 在这里细分的话包含：
-> 1 参数处理原理(包括自定义JavaBean的转换过程)
-> 2 数据响应原理
-> 3 内容协商原理(数据响应原理的一部分)
-> 4 形参类型Model、Map为什么会达到和请求域一致的效果？
+> 1 参数处理原理
+> 2 补充1：自定义JavaBean的转换过程(参数处理原理的一部分)
+> 3 数据响应原理
+> 4 补充2：内容协商原理(数据响应原理的一部分)
 > 5 视图解析原理
+> 6 补充3：形参类型Model、Map为什么会达到和请求域一致的效果？(视图解析原理的一部分)
 
 1. 获取HandlerAdapter
    ![image-20231122205600570](image/Spring源码解读.assets/image-20231122205600570.png)
@@ -642,6 +643,7 @@ handlerMapping保存的映射规则：
       1 - **Model**MethodProcessor
       ...
       11- Request**ResponseBody**MethodProcessor：**处理返回值标了@ResponseBody注解的**
+      12- **ViewName**MethodReturnValueHandler：**处理视图**的返回值处理器
       ...
 
       返回值处理器ReturnValueHandler也有两个方法：
@@ -709,6 +711,8 @@ handlerMapping保存的映射规则：
 
       > 自此，参数解析就完成了，如果没有使用注解，那么参数绑定将会使用asm框架来读取字节码文件来获取方法的参数名称
 
+   3. 执行目标方法：doInvoke0()执行到controller中的方法
+
    3. 执行方法后，遍历合适的返回值处理器**处理返回值**：
 
       一般情况下，我们会使用@ResponseBody注解，所以经过supportsReturnType()会遍历到我们的第**11- RequestResponseBodyMethodProcessor**，然后调用它的handleReturnValue()方法
@@ -745,30 +749,40 @@ handlerMapping保存的映射规则：
 
       ​	补充：若我们引入xml场景依赖，那么根据上面的Accept，发现xml在*. *的前面，所以统计时会统计jsonConverter和xmlConverter，但是最佳匹配会匹配到xmlConverter
 
-   3. 写出json后，所有的数据都已经放在 **ModelAndViewContainer**；包含Model数据和要去的页面地址View
+   3. 上述过程中，所有数据都会放在 **ModelAndViewContainer**；包含**Model数据**和要去的**视图地址View**
 
       **当controller的方法设置Map、Model等类型的参数，当往其中添加数据过后，都会被封装到ModelAndView的Model数据中**
       ![image.png](image/Spring源码解读.assets/1603272018605-1bce3142-bdd9-4834-a028-c753e91c52ac.png)
+      
+      最终任何目标方法执行完成以后都会**返回 ModelAndView（数据和视图地址）**。
 
-3. 处理结果渲染视图processDispatchResult()
+3. 处理派发结果processDispatchResult()：
 
-   调用链：render() --> renderMergedOutputModel() --> exposeModelAsRequestAttributes(model, request);
+   render(mv, request, response)：
 
-   ```java
-   // 将model中的值全部设置到请求域requestAttribute中
-   protected void exposeModelAsRequestAttributes(Map<String, Object> model, HttpServletRequest request) throws Exception {
-       model.forEach((name, value) -> {
-           if (value != null) {
-               request.setAttribute(name, value);
-           } else {
-               request.removeAttribute(name);
-           }
+   ​	根据方法的String返回值得到视图名称viewName，然后根据viewName获取视图对象view，叫**视图解析**
    
-       });
-   }
-   ```
-
-   这个方法会**将model中的值全部设置到请求域requestAttribute中**，这就是为什么，在方法形参中，Model、Map、HttpServletRequest类型的对象，都可以往请求域中放数据的原因
+   > **视图解析结果分类：**
+   >
+   > 1. 返回值String以 **forward** 开始： new InternalResourceView(forwardUrl);视图渲染时最后调用servlet的request.getRequestDispatcher(path).forward(request, response)进行**转发**
+   > 2. 返回值String以 **redirect** 开始： new RedirectView();视图渲染时最后调用servlet的response.sendRedirect(path)进行**重定向**
+   > 3. 返回值String时 **普通字符串**：new ThymeleafView();然后进行正常**视图渲染**操作
+   >
+   > 具体步骤如下：
+   
+   ​		1 遍历所有的视图解析器
+   ​		![image-20231124172106506](image/Spring源码解读.assets/image-20231124172106506.png)
+   ​		2 会选中第一个内容协商视图解析器，该解析器内又包含其它所有视图解析器：
+   ​		![image-20231124172504979](image/Spring源码解读.assets/image-20231124172504979.png)
+   
+   ​		3 再次遍历内部的四个视图解析器，比如使用thymeleaf模板引擎的时候，我们一般会选中ThymeleafViewResolver，然后利用选中的视图解析器获得到视图对象view(三种类型)
+   
+   ​		4 然后调用view.render(mv.getModelInternal(), request, response)进行**渲染视图**：
+   ​		根据view是转发视图、重定向视图还是普通视图，渲染的区别如下：
+   
+   ​			4.1 转发视图和重定向视图：进行转发或重定向到新的地址，然后重新进行视图解析
+   
+   ​			4.2 普通视图：进行页面数据的渲染
 
 
 
@@ -858,7 +872,7 @@ public final Object resolveArgument(MethodParameter parameter, @Nullable ModelAn
 
 ### 补充2：内容协商原理
 
-**默认**情况下是**基于请求头的内容协商**策略：原理：在上面SpringBoot参数处理原理2.3中进行了讲解
+**默认**情况下是**基于请求头的内容协商**策略：原理：在上面SpringBoot参数处理、数据响应、视图解析原理 2.4中进行了讲解
 
 
 
@@ -886,9 +900,43 @@ spring:
 
 
 
+### 补充3：形参类型Model、Map为什么会达到和请求域一致的效果？
+
+结合上面 SpringBoot参数处理、数据响应、视图解析原理 第3步处理派发结果来看具体场景
+
+调用链：render() --> view.render() --> renderMergedOutputModel() --> exposeModelAsRequestAttributes(model, request);
+
+```java
+// 将model中的值全部设置到请求域requestAttribute中
+protected void exposeModelAsRequestAttributes(Map<String, Object> model, HttpServletRequest request) throws Exception {
+    model.forEach((name, value) -> {
+        if (value != null) {
+            request.setAttribute(name, value);
+        } else {
+            request.removeAttribute(name);
+        }
+
+    });
+}
+```
+
+这个方法会**将model中的值全部设置到请求域requestAttribute中**，这就是为什么，在方法形参中，Model、Map、HttpServletRequest类型的对象，都可以往请求域中放数据的原因
 
 
 
+## 文件上传原理
+
+> 这里的文件上传检查即，上面 在SpringMVC源码解读中的处理请求流程，中的第2.0步：检查是否是文件上传的请求
+
+SpringBoot自动装配了文件上传解析器 StandardServletMultipartResolver
+
+在doDispatch()方法中的第一步，就是检查是否是文件上传请求：checkMultipart(request);
+检查方式：StringUtils.startsWithIgnoreCase(request.getContentType(), "multipart/");
+所以说我们上传文件的表单必须指明是文件上传表单
+
+然后我们会和正常的MVC处理流程一样：
+我们在执行ha.handle()方法时，遍历使用到的参数解析器是**8-RequestPartMethodArgumentResolver**，使用该参数解析器调用方法resolveArgument()将request中的文件封装为MultipartFile，然后放到一个map中：MultiValueMap<String, MultipartFile>
+执行方法底层调用 FileCopyUtils 实现文件流的拷贝
 
 
 

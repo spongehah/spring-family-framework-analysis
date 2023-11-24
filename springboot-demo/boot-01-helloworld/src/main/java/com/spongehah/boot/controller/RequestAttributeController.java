@@ -17,19 +17,18 @@ public class RequestAttributeController {
                            Model model) {
         model.addAttribute("hello", "hello world");
         request.setAttribute("msg", "成功了。。。");
-        return "forward:/success";
+        return "redirect:/success";
     }
     
-    @ResponseBody
     @GetMapping("/success")
-    public Map success(@RequestAttribute("msg") String msg,
-                       HttpServletRequest request) {
+    public String success(@RequestAttribute("msg") String msg,
+                       HttpServletRequest request,
+                       Map map) {
         Object msg1 = request.getAttribute("msg");
         Object hello = request.getAttribute("hello");
-        Map<String, Object> map = new HashMap<>();
         map.put("msg", msg);
         map.put("msg1", msg1);
         map.put("hello", hello);
-        return map;
+        return "success";
     }
 }
