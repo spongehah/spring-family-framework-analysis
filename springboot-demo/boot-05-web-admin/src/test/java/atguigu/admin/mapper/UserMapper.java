@@ -1,6 +1,6 @@
 package atguigu.admin.mapper;
 
-import atguigu.admin.bean.User;
+import com.atguigu.admin.bean.User;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 

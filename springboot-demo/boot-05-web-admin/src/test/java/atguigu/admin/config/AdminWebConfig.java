@@ -1,11 +1,18 @@
 package atguigu.admin.config;
 
 
-import atguigu.admin.interceptor.LoginInterceptor;
-import atguigu.admin.interceptor.RedisUrlCountInterceptor;
+import com.atguigu.admin.interceptor.LoginInterceptor;
+import com.atguigu.admin.interceptor.RedisUrlCountInterceptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcRegistrations;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /**
  * 1、编写一个拦截器实现HandlerInterceptor接口

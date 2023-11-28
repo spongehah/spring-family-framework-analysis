@@ -1,0 +1,8 @@
+org.springframework.context.ApplicationContextInitializer=\
+com.spongehah.boot.listeners.MyApplicationContextInitializer
+
+org.springframework.context.ApplicationListener=\
+com.spongehah.boot.listeners.MyApplicationListener
+
+org.springframework.boot.SpringApplicationRunListener=\
+com.spongehah.boot.listeners.MySpringApplicationRunListener

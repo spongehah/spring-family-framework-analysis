@@ -210,6 +210,8 @@ public void refresh() throws BeansException, IllegalStateException {
 
 ## 流程图
 
+![image-20231128125744683](image/Spring源码解读.assets/image-20231128125744683.png)
+
 ![在这里插入图片描述](image/Spring源码解读.assets/3.png)
 
 ![img](image/Spring源码解读.assets/4.png)
@@ -582,7 +584,7 @@ handlerMapping保存的映射规则：
 
 ![image-20231122172048365](image/Spring源码解读.assets/image-20231122172048365.png)
 
-从下面这副图可以看到，通过handlerMapping获取的HanderExecutionChain对象已经是包含HandlerMethod对象了
+从下面这副图可以看到，通过handlerMapping获取的HandlerExecutionChain对象已经是包含HandlerMethod对象了
 
 ![image-20231122171919117](image/Spring源码解读.assets/image-20231122171919117.png)
 
@@ -865,6 +867,7 @@ public final Object resolveArgument(MethodParameter parameter, @Nullable ModelAn
 **WebDataBinder：web数据绑定器，作用是将请求参数的值绑定到指定的JavaBean里面**，步骤是设置每一个值的时候遍历里面的**GenericConversionService**里面的 Converters 查找适合的converter将请求数据转成指定的数据类型
 
 接口：public interface Converter<S, T>：将**S**ource类型转换为**T**arget类型
+可以在MVC配置类中添加自定义的converter
 
 ![image-20231123140109394](image/Spring源码解读.assets/image-20231123140109394.png)
 
@@ -938,13 +941,151 @@ SpringBoot自动装配了文件上传解析器 StandardServletMultipartResolver
 我们在执行ha.handle()方法时，遍历使用到的参数解析器是**8-RequestPartMethodArgumentResolver**，使用该参数解析器调用方法resolveArgument()将request中的文件封装为MultipartFile，然后放到一个map中：MultiValueMap<String, MultipartFile>
 执行方法底层调用 FileCopyUtils 实现文件流的拷贝
 
+## 异常处理流程
+
+DefaultErrorAttributes先来处理异常。把异常信息保存到request域，并且返回null；
+
+<img src="image/Spring源码解读.assets/image-20231125160405095.png" alt="image-20231125160405095" style="zoom: 67%;" />
+
+然后由系统默认的 异常解析器 进行解析：
+
+0-**ExceptionHandler**ExceptionResolver：若有标注了注解**@ExeceptionHandler**的异常处理器，就可以由它解析（要自定义了才有，默认是没有的）
+1-**ResponseStatus**ExceptionResolver：若有标注了注解**@ResponseStatus**的异常，就可以由它解析（要自定义了才有，默认是没有的）
+2-DefaultHandlerExceptionResolver：解析Spring框架的常见异常，如参数处理异常等等
+
+> 所以我们**自定义异常处理器**是使用@ControllerAdvice + @ExeceptionHandler
+> 所以我们**自定义异常**是 **可以**使用 @ResponseStatus 进行标识状态码和错误信息的
+
+**如果没有任何人能处理异常**，异常会被抛出，发送 /error 请求，/error 请求会被底层的**BasicErrorController**处理，然后默认会使用 **DefaultErrorViewResolver** 解析错误视图，如果有自定义的错误页，根据状态码将会找到/error/4xx、5xx.html，若没有将会返回白页
 
 
 
+## SpringBoot启动流程
+
+SpringApplication.run()方法：
+
+```java
+public static ConfigurableApplicationContext run(Class<?>[] primarySources, String[] args) {
+    return (new SpringApplication(primarySources)).run(args);
+}
+```
+
+分为两步：
+
+1. 创建 SpringApplication
+2. 运行 SpringApplication
 
 
 
+1. 创建 SpringApplication：
 
+     - 保存一些信息。
+
+     - 判定当前应用的类型。ClassUtils。Servlet
+
+     - <font color='red'>bootstrappers</font>：**初始启动引导器（List<Bootstrapper>）**：去spring.factories文件中找org.springframework.boot.**Bootstrapper**（默认为0个）
+     - 找 **<font color='red'>ApplicationContextInitializer</font>**；去spring.factories找**ApplicationContextInitializer**
+       - List<ApplicationContextInitializer<?>> **initializers**
+
+     - 找 **<font color='red'>ApplicationListener  ；应用监听器</font>。**去spring.factories找 **ApplicationListener**
+       - List<ApplicationListener<?>> **listeners**
+
+2. 运行 SpringApplication：
+
+   ```java
+   public ConfigurableApplicationContext run(String... args) {
+      StopWatch stopWatch = new StopWatch();
+      //时间监控：开始计时
+      stopWatch.start();
+      //创建引导上下文（Context环境）
+      DefaultBootstrapContext bootstrapContext = createBootstrapContext();
+      ConfigurableApplicationContext context = null;
+      //进入headless模式
+      configureHeadlessProperty();
+      //获取所有 RunListener
+      SpringApplicationRunListeners listeners = getRunListeners(args);
+      listeners.starting(bootstrapContext, this.mainApplicationClass);
+      try {
+         //保存命令行参数
+         ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+         //准备环境
+         ConfigurableEnvironment environment = prepareEnvironment(listeners, bootstrapContext, applicationArguments);
+         configureIgnoreBeanInfo(environment);
+         Banner printedBanner = printBanner(environment);
+         //创建IOC容器
+         context = createApplicationContext();
+         context.setApplicationStartup(this.applicationStartup);
+         //准备IOC容器的基本信息
+         prepareContext(bootstrapContext, context, environment, listeners, applicationArguments, printedBanner);
+         //刷新IOC容器，即refresh()
+         refreshContext(context);
+         afterRefresh(context, applicationArguments);
+         //时间监控停止计时
+         stopWatch.stop();
+         if (this.logStartupInfo) {
+            new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
+         }
+         listeners.started(context);
+         //调用所有runner的run()方法
+         callRunners(context, applicationArguments);
+      }
+      catch (Throwable ex) {
+         handleRunFailure(context, ex, listeners);
+         throw new IllegalStateException(ex);
+      }
+   
+      try {
+         listeners.running(context);
+      }
+      catch (Throwable ex) {
+         handleRunFailure(context, ex, null);
+         throw new IllegalStateException(ex);
+      }
+      return context;
+   }
+   ```
+
+   - 时间监控StopWatch开始计时
+   - **创建引导上下文（Context环境）**createBootstrapContext()
+     - 获取到所有**之前的** <font color='red'>bootstrappers</font> **挨个执行** initialize() 来完成对引导启动器上下文环境设置
+   - 让当前应用进入**headless**模式。**java.awt.headless**
+   - **获取所有 <font color='red'>RunListener</font>**（运行监听器）【为了方便所有Listener进行事件感知】
+     - 去spring.factories找 **SpringApplicationRunListener**（区别于上面的ApplicationListener），该RunListener是 EventPublishingRunListener ，贯穿了整个SpringBoot的启动过程
+       ![image-20231127224431871](image/Spring源码解读.assets/image-20231127224431871.png)
+       它的这些方法都会被调用到：
+       <img src="image/Spring源码解读.assets/image-20231127231314417.png" alt="image-20231127231314417" style="zoom: 67%;" />
+     - 遍历该listeners的所有listener(实际就一个) <font color='cornflowerblue'>调用 starting() </font>；相当于通知所有感兴趣系统正在启动过程的人，项目正在 starting
+   - 保存命令行参数：ApplicationArguments
+   - 准备环境：prepareEnvironment()
+     - 返回或者创建基础环境信息对象：**StandardServletEnvironment**
+     - 配置环境信息对象：读取所有配置源的配置属性值
+     - 绑定环境信息
+     - 遍历那一个RunListener<font color='cornflowerblue'>调用 environmentPrepared()</font>，通知所有的监听器当前环境准备完成
+   - 创建IOC容器：createApplicationContext()
+     - 根据项目类型（Servlet）创建容器，
+       当前会创建**AnnotationConfigServletWebServerApplicationContext**
+   - 准备ApplicationContext IOC容器的基本信息：prepareContext()
+     - 保存环境信息
+     - IOC容器的后置处理流程
+     - 应用初始化器；applyInitializers()
+       - 遍历之前的所有 **<font color='red'>ApplicationContextInitializer</font>** ，调用 initialize，来对IOC容器进行初始化扩展功能
+       - 遍历那一个RunListener<font color='cornflowerblue'>调用 contextPrepared()</font>，通知所有的监听器contextPrepared
+     - 遍历那一个RunListener<font color='cornflowerblue'>调用 contextLoaded()</font>，通知所有的监听器contextLoaded
+   - **<font color='orange'>刷新IOC容器：refreshContext()</font>**
+     - 即SpringIOC容器的启动流程，对应**refresh()**方法，获取所有bean定义并创建所有组件
+   - 容器创建完成后：afterRefresh()
+   - 时间监控StopWatch停止计时
+   - 遍历那一个RunListener<font color='cornflowerblue'>调用 started()</font>，通知所有的监听器started
+   - 调用所有runner：callRunners()
+     - 获取容器中的 **<font color='red'>ApplicationRunner</font>** 和 **<font color='red'>CommandLineRunner</font>**
+     - 合并所有runner并且按照@Order进行排序
+     - 遍历所有的runner，**调用 run() 方法**
+   - 如果以上有异常：遍历那一个RunListener<font color='cornflowerblue'>调用 failed()</font>
+   - 遍历那一个RunListener<font color='cornflowerblue'>调用 running()</font>，表示程序正在running
+     - running过程中如果有异常，也<font color='cornflowerblue'>调用 failed()</font>
+
+> 红色加粗字体的组件(也就是红色除了bootstrappers)，都可以实现，以实现自定义的事件监听组件
+> 自定义监听组件可以看我的笔记《SpringBoot使用手册》
 
 
 

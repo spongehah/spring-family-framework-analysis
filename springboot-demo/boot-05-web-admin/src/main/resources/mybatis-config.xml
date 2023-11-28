@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+    <settings>
+        <!--
+            当数据库表格字段名和实体类的属性名不一致时，将字段名中的下划线去掉，并将后继第一个字母改为大写
+            eg：emp_name -> empName
+        -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!--延迟加载-->
+        <setting name="lazyLoadingEnabled" value="true"/>
+    </settings>
+
+    <!--
+        分页插件：
+            index：当前页的起始索引
+            pageSize：每页显示的条数
+            pageNum：当前页的页码
+            index=(pageNum-1)*pageSize
+
+            使用MyBatis的分页插件实现分页功能：
+            1.需要在查询功能之前开启分页
+            pageHelper.startPage(int pageNum,int pageSize);
+            2.在查询功能之后获取相关分页信息
+            pageInfo<Emp> page = new pageInfo<>(emps,int navigatePages)
+            System.out.println(page);
+            emps:表示分页数据
+            navigatePages:表示当前导航栏显示的页码数量/当前导航分页的数量
+    -->
+
+    <plugins>
+        <!--设置分页插件-->
+        <plugin interceptor="com.github.pagehelper.PageInterceptor"></plugin>
+    </plugins>
+
+</configuration>

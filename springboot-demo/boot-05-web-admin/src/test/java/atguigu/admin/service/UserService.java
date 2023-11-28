@@ -1,7 +1,9 @@
 package atguigu.admin.service;
 
-import atguigu.admin.bean.User;
+import com.atguigu.admin.bean.User;
 import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.util.List;
 
 /**
  *  Service 的CRUD也不用写了

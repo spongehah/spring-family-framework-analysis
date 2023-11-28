@@ -1,11 +1,11 @@
 package atguigu.admin.controller;
 
 
-import atguigu.admin.bean.Account;
-import atguigu.admin.bean.City;
-import atguigu.admin.bean.User;
-import atguigu.admin.service.AccountService;
-import atguigu.admin.service.CityService;
+import com.atguigu.admin.bean.Account;
+import com.atguigu.admin.bean.City;
+import com.atguigu.admin.bean.User;
+import com.atguigu.admin.service.AccountService;
+import com.atguigu.admin.service.CityService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;

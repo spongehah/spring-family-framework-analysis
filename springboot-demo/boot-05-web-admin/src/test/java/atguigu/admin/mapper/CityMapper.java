@@ -1,6 +1,6 @@
 package atguigu.admin.mapper;
 
-import atguigu.admin.bean.City;
+import com.atguigu.admin.bean.City;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;

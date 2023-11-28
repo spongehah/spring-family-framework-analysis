@@ -6,7 +6,7 @@ import lombok.Data;
 public class Account {
 
     private Long id;
-    private String userId;
-    private Integer money;
+    private String name;
+    private Double money;
 
 }
