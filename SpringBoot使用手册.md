@@ -185,6 +185,11 @@ spring:
 当我们使用**表单提交**时，由于表单中method只能写get和post两种请求，所以当我们想要发送put、delete、patch请求时：
 
 1. 需要设置表单：method=post，隐藏域 _method=put/delete/patch
+
+   ```html
+   <input type="hidden" name="_method" value="put">
+   ```
+
 2. 配置文件手动开启HiddenHttpMethodFilter：
 
 ```yaml
@@ -637,6 +642,16 @@ public class WebAdminConfig implements WebMvcConfigurer {
 </form>
 ```
 
+配置上传文件大小：
+
+```yaml
+spring: 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+```
+
 文件上传代码：
 
 **推荐上传到OSS服务器**，下面给出//放到项目路径 和 //放到本机指定位置 两种写法
@@ -656,6 +671,8 @@ public String upload(@RequestParam("email") String email,
     
     //放到项目resources目录下的photo文件夹
     File file = new File("src/main/resources/static/photo");
+    //上传到target处才能实时加载
+	/File file = new File("target/classes/static/picture");
     if(!file.exists()){
         file.mkdirs();
     }
@@ -914,7 +931,7 @@ public class GlobalExceptionHandler {
 
 4. 另外要注解事务的7种失效场景
 
-> 事务属性 和 失效场景 详情请看我的笔记《Spring重要知识点总结》
+> 事务属性 和 失效场景 详情请看我的笔记[《Spring重要知识点总结》](https://blog.hahhome.top/blog/Spring%E9%87%8D%E8%A6%81%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/)
 
 ## 5.8 参数校验
 

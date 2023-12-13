@@ -1085,7 +1085,7 @@ public static ConfigurableApplicationContext run(Class<?>[] primarySources, Stri
      - running过程中如果有异常，也<font color='cornflowerblue'>调用 failed()</font>
 
 > 红色加粗字体的组件(也就是红色除了bootstrappers)，都可以实现，以实现自定义的事件监听组件
-> 自定义监听组件可以看我的笔记《SpringBoot使用手册》
+> 自定义监听组件可以看我的笔记[《SpringBoot使用手册》](https://blog.hahhome.top/blog/SpringBoot%E4%BD%BF%E7%94%A8%E6%89%8B%E5%86%8C/)
 
 
 
