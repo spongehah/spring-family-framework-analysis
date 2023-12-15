@@ -1465,7 +1465,185 @@ com.spongehah.boot.listeners.MySpringApplicationRunListener
 
 然后ApplicationRunner、CommandLineRunner这两个组件在启动流程中是从容器中加载的，所以我们要使用**@Component **注解
 
+## 5.16 JVM本地缓存-Caffeine
 
+构建cache对象：
+
+```java
+Cache<String, String> cache = Caffeine.newBuilder().initialCapacity(100).build();
+```
+
+- Caffeine.newBuilder().[参数].build();	构建缓存对象，可以设置参数如初始大小，驱逐策略等
+- cache.getIfPresent(key);     如果存在缓存就获取，否则返回null
+- cache.get(key, function);     如果存在缓存就返回缓存，否则执行function操作（一般是查询数据库操作）**并存入缓存**
+- cache.put(key, object)	将object放入缓存
+- cache.invalidate(key)     删除指定key的缓存
+
+
+
+三种缓存驱逐策略：
+
+- **基于容量**：设置缓存的数量上限
+
+  ```java
+  // 创建缓存对象
+  Cache<String, String> cache = Caffeine.newBuilder()
+      .maximumSize(1) // 设置缓存大小上限为 1
+      .build();
+  ```
+
+- **基于时间**：设置缓存的有效时间
+
+  ```java
+  // 创建缓存对象
+  Cache<String, String> cache = Caffeine.newBuilder()
+      // 设置缓存有效期为 10 秒，从最后一次写入开始计时 
+      .expireAfterWrite(Duration.ofSeconds(10)) 
+      .build();
+  ```
+
+- **基于引用**：设置缓存为软引用或弱引用，利用GC来回收缓存数据。性能较差，不建议使用。
+
+> 在默认情况下，当一个缓存元素过期的时候，Caffeine**不会自动立即**将其清理和驱逐。而是在一次读或写操作后，或者在空闲时间完成对失效数据的驱逐。
+
+
+
+整合到SpringBoot：
+
+```java
+@Configuration
+public class CaffeineConfig {
+
+    @Bean
+    public Cache<Long, Item> itemCache(){
+        return Caffeine.newBuilder()
+                .initialCapacity(100)
+                .maximumSize(10_000) //_只是分隔符，可以不要
+                .build();
+    }
+
+    @Bean
+    public Cache<Long, ItemStock> stockCache(){
+        return Caffeine.newBuilder()
+                .initialCapacity(100)
+                .maximumSize(10_000)
+                .build();
+    }
+}
+
+@RestController
+@RequestMapping("item")
+public class ItemController {
+
+    @Autowired
+    private IItemService itemService;
+    @Autowired
+    private IItemStockService stockService;
+
+    @Autowired
+    private Cache<Long, Item> itemCache;
+    @Autowired
+    private Cache<Long, ItemStock> stockCache;
+    
+    // ...其它略
+    
+    @GetMapping("/{id}")
+    public Item findById(@PathVariable("id") Long id) {
+        return itemCache.get(id, key -> itemService.query()
+                .ne("status", 3).eq("id", key)
+                .one()
+        );
+    }
+
+    @GetMapping("/stock/{id}")
+    public ItemStock findStockById(@PathVariable("id") Long id) {
+        return stockCache.get(id, key -> stockService.getById(key));
+    }
+}
+```
+
+## 5.17 导出导入Excel
+
+依赖：
+
+```xml
+<!-- https://mvnrepository.com/artifact/com.alibaba/easyexcel -->
+<dependency>
+    <groupId>com.alibaba</groupId>
+    <artifactId>easyexcel</artifactId>
+    <version>2.1.1</version>
+</dependency>
+```
+
+**小数据量**读写：
+
+```java
+//导出数据字典到Excel接口
+@Override
+public void exportDictData(HttpServletResponse response) {
+    //设置下载信息
+    response.setContentType("application/vnd.ms-excel");
+    response.setCharacterEncoding("utf-8");
+    String fileName = "dict";
+    response.setHeader("Content-disposition", "attachment;filename="+ fileName + ".xlsx");
+    //查询数据库
+    List<Dict> dictList = baseMapper.selectList(null);
+    //Dict -> DictEeVo
+    List<DictEeVo> dictVoList = new ArrayList<>();
+    dictList.forEach(dict -> {
+        DictEeVo dictEeVo = new DictEeVo();
+        BeanUtils.copyProperties(dict,dictEeVo);
+        dictVoList.add(dictEeVo);
+    });
+    
+    //调用方法进行写操作
+    try {
+        EasyExcel.write(response.getOutputStream(),DictEeVo.class).sheet().doWrite(dictVoList);
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+```
+
+```java
+//导入Excel数据字典接口
+@Override
+public void importDictData(MultipartFile file) {
+    try {
+        EasyExcel.read(file.getInputStream(),DictEeVo.class,new DictListener(baseMapper)).sheet().doRead();
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
+//使用监听器写入数据到数据库
+public class DictListener extends AnalysisEventListener<DictEeVo> {
+    
+    private DictMapper dictMapper;
+
+    public DictListener(DictMapper dictMapper) {
+        this.dictMapper = dictMapper;
+    }
+
+    //一行一行读
+    @Override
+    public void invoke(DictEeVo dictEeVo, AnalysisContext analysisContext) {
+        //调用方法添加到数据库
+        Dict dict = new Dict();
+        BeanUtils.copyProperties(dictEeVo,dict);
+        dictMapper.insert(dict);
+    }
+
+    @Override
+    public void doAfterAllAnalysed(AnalysisContext analysisContext) {
+
+    }
+}
+```
+
+> 大数据量读写：
+> 思路：采用分批并且采用JDBC批量操作快于MyBatis批量操作
+> 参考文章：[百万数据Excel导入导出解决方案](https://mp.weixin.qq.com/s/7eg0eqLiUui8-5XQJuAwOQ)
 
 # 6 数据访问
 

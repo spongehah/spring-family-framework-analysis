@@ -28,7 +28,7 @@
 
 **DI**(Dependency Inject,依赖注入)**也是**实现控制反转的一种**设计模式**，依赖注入就是将实例变量传入到一个对象中去。
 
-> Spring IoC源码分析：https://blog.hahhome.top/blog/Spring%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB
+> Spri127.0.0.1:7890ng IoC源码分析：https://blog.hahhome.top/blog/Spring%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB
 
 ## 声明Bean和注入Bean
 
@@ -661,10 +661,12 @@ public interface TransactionStatus{
 2. TransactionDefinition.**PROPAGATION_REQUIRES_NEW**
 
    创建一个新的事务，如果当前存在事务，则把当前事务挂起。也就是说**不管外部方法是否开启事务，**`Propagation.REQUIRES_NEW`修饰的内部方法**都会新开启自己的事务，且开启的事务相互独立，互不干扰。**
+   举例：方法A嵌套B，A回滚，B不回滚；B回滚，A回滚
 
 3. TransactionDefinition.**PROPAGATION_NESTED**
 
    如果当前存在事务，则创建一个事务作为当前事务的嵌套事务来运行；如果当前没有事务，则该取值等价于`TransactionDefinition.PROPAGATION_REQUIRED`。
+   举例：方法A嵌套B，A回滚，B回滚；B回滚，A不回滚
 
 4. TransactionDefinition.**PROPAGATION_MANDATORY**
 
