@@ -824,8 +824,15 @@ public @interface Transactional {
         //......
      }
    }
+   
+   <dependency>
+       <groupId>org.aspectj</groupId>
+       <artifactId>aspectjweaver</artifactId>
+   </dependency>
+       
+   @EnableAspectJAutoProxy(exposeProxy = true)
    ```
-
+   
    > 第二个解决办法，在我的《Redis实战篇》笔记中，一人一单问题中有使用过
 
 

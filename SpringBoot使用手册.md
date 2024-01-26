@@ -627,7 +627,7 @@ public class WebAdminConfig implements WebMvcConfigurer {
 }
 ```
 
-
+> 若要设置添加的多个拦截器的优先级，默认情况下所有拦截器的order都等于0，执行顺序按照添加顺序执行，或者可以在设置完patterns过后 **.order()** 进行设置
 
 > 拦截器的执行顺序：在笔记[《Spring源码解读》](https://blog.hahhome.top/blog/Spring%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB)中可以看出来，在《Spring重要知识点总结》中有详细说明
 
@@ -1028,6 +1028,10 @@ public class PersonController {
 
 ## 5.9 定时任务
 
+> 更多定期任务、延时任务、分布式任务方案请看：[JavaGuide《Java 定时任务详解》](https://javaguide.cn/system-design/schedule-task.html)
+
+**SpringTask用法（属于定期任务）：**
+
 1. 启动类加上 @EnableScheduling 注解
 
 2. 创建定时任务类：
@@ -1069,7 +1073,7 @@ public class PersonController {
 
 5. 若要开启多线程定时任务，只需在定时任务类上再加上 @EnableAsync 注解即可
 
-> 还可以基于接口 SchedulingConfigurer 的方式实现定时任务
+> 还可以基于接口 SchedulingConfigurer 的方式实现定期任务
 > 参考文章：https://blog.csdn.net/qianlixiaomage/article/details/106599951
 
 ## 5.10 为当前类初始化一些数据
