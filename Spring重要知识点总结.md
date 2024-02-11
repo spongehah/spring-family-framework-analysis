@@ -28,7 +28,7 @@
 
 **DI**(Dependency Inject,依赖注入)**也是**实现控制反转的一种**设计模式**，依赖注入就是将实例变量传入到一个对象中去。
 
-> Spri127.0.0.1:7890ng IoC源码分析：https://blog.hahhome.top/blog/Spring%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB
+> Spring IoC源码分析：https://blog.hahhome.top/blog/Spring%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB
 
 ## 声明Bean和注入Bean
 
@@ -156,7 +156,12 @@ public Person personPrototype() {
 ```
 
 > Bean是线程安全的吗？
-> 在scope = singleton时，如果这个 bean 是有状态的话，那就存在线程安全问题
+> 在scope = singleton时，如果这个 bean 是有状态（类中定义了可变的成员变量）的话，那就存在线程安全问题
+>
+> 解决：
+> 1 不要定义可变的成员变量
+> 2 类中定义ThreadLocal，可变成员变量保存在ThreadLocal中
+>
 > 原文:https://javaguide.cn/system-design/framework/spring/spring-knowledge-and-questions-summary.html#bean-%E6%98%AF%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8%E7%9A%84%E5%90%97
 
 
@@ -526,7 +531,7 @@ private Method getMappedMethod(Class<? extends Throwable> exceptionType) {
 - **依赖注入** : 依赖注入也是一种设计模式，就是将实例变量传入到一个对象中去
 - **包装器设计模式/装饰器模式** : 我们的项目需要连接多个数据库，而且不同的客户在每次访问中根据需要会去访问不同的数据库。这种模式让我们可以根据客户的需求能够动态切换不同的数据源。
 - **观察者模式** : Spring **事件驱动**模型就是观察者模式很经典的一个应用。[ [链接：点击跳转] ](https://javaguide.cn/system-design/framework/spring/spring-design-patterns-summary.html#%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F)
-- **适配器模式** : Spring AOP 的增强或通知(Advice)使用到了适配器模式、spring MVC 中也是用到了适配器模式适配`Controller`。
+- **适配器模式** : Spring AOP 的增强或通知(Advice)使用到了适配器模式、spring MVC 中的HandleAdapter也是用到了适配器模式适配`Controller`。
 - ……
 
 

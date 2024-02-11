@@ -257,9 +257,8 @@ DispatcherServlet 本质上是一个 Servlet，所以天然的遵循 Servlet 的
      	...
      	return wac;
      }
-     
      ```
-
+   
 2. 创建WebApplicationContext
 
    - ```java
@@ -568,7 +567,7 @@ SpringBoot启动时，会默认加载 spring-boot-autoconfigure-2.3.12.RELEASE.j
 
 > 这里的请求映射即，上面 在SpringMVC源码解读中的处理请求流程，中的第2.1和2.2步：从HandlerMapping取得处理当前请求的controller
 
-匹配HandlerMapping：
+​                            
 
 ![image-20231122170538747](image/Spring源码解读.assets/image-20231122170538747.png)
 这里我们可以看到有五个handlerMapping：
@@ -749,7 +748,7 @@ handlerMapping保存的映射规则：
       ​	spring-boot-starter-web(Web场景)自动引入了json场景(jackson)
       ​	最终会遍历得到**7-MappingJackson2HttpMessageConverter**可以处理返回值类型(**一定为true**)，它写出类型为json，统计起来，最终进行最佳匹配是**写出json**，于是调用该converter进行写出数据为json
 
-      ​	补充：若我们引入xml场景依赖，那么根据上面的Accept，发现xml在*. *的前面，所以统计时会统计jsonConverter和xmlConverter，但是最佳匹配会匹配到xmlConverter
+      ​	补充：若我们引入xml场景依赖，那么根据上面的Accept，发现xml在*.\*的前面，所以统计时会统计jsonConverter和xmlConverter，但是最佳匹配会匹配到xmlConverter
 
    3. 上述过程中，所有数据都会放在 **ModelAndViewContainer**；包含**Model数据**和要去的**视图地址View**
 
@@ -994,54 +993,54 @@ public static ConfigurableApplicationContext run(Class<?>[] primarySources, Stri
 
    ```java
    public ConfigurableApplicationContext run(String... args) {
-      StopWatch stopWatch = new StopWatch();
-      //时间监控：开始计时
-      stopWatch.start();
-      //创建引导上下文（Context环境）
-      DefaultBootstrapContext bootstrapContext = createBootstrapContext();
-      ConfigurableApplicationContext context = null;
-      //进入headless模式
-      configureHeadlessProperty();
-      //获取所有 RunListener
-      SpringApplicationRunListeners listeners = getRunListeners(args);
-      listeners.starting(bootstrapContext, this.mainApplicationClass);
-      try {
-         //保存命令行参数
-         ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
-         //准备环境
-         ConfigurableEnvironment environment = prepareEnvironment(listeners, bootstrapContext, applicationArguments);
-         configureIgnoreBeanInfo(environment);
-         Banner printedBanner = printBanner(environment);
-         //创建IOC容器
-         context = createApplicationContext();
-         context.setApplicationStartup(this.applicationStartup);
-         //准备IOC容器的基本信息
-         prepareContext(bootstrapContext, context, environment, listeners, applicationArguments, printedBanner);
-         //刷新IOC容器，即refresh()
-         refreshContext(context);
-         afterRefresh(context, applicationArguments);
-         //时间监控停止计时
-         stopWatch.stop();
-         if (this.logStartupInfo) {
-            new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
-         }
-         listeners.started(context);
-         //调用所有runner的run()方法
-         callRunners(context, applicationArguments);
-      }
-      catch (Throwable ex) {
-         handleRunFailure(context, ex, listeners);
-         throw new IllegalStateException(ex);
-      }
-   
-      try {
-         listeners.running(context);
-      }
-      catch (Throwable ex) {
-         handleRunFailure(context, ex, null);
-         throw new IllegalStateException(ex);
-      }
-      return context;
+      	StopWatch stopWatch = new StopWatch();
+      	//时间监控：开始计时
+      	stopWatch.start();
+      	//创建引导上下文（Context环境）
+      	DefaultBootstrapContext bootstrapContext = createBootstrapContext();
+      	ConfigurableApplicationContext context = null;
+      	//进入headless模式
+      	configureHeadlessProperty();
+      	//获取所有 RunListener
+      	SpringApplicationRunListeners listeners = getRunListeners(args);
+      	listeners.starting(bootstrapContext, this.mainApplicationClass);
+      	try {
+      	   	//保存命令行参数
+      	   	ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+      	   	//准备环境
+      	   	ConfigurableEnvironment environment = prepareEnvironment(listeners, bootstrapContext, applicationArguments);
+      	   	configureIgnoreBeanInfo(environment);
+      	   	Banner printedBanner = printBanner(environment);
+      	   	//创建IOC容器
+      	   	context = createApplicationContext();
+      	   	context.setApplicationStartup(this.applicationStartup);
+      	   	//准备IOC容器的基本信息
+      	   	prepareContext(bootstrapContext, context, environment, listeners, applicationArguments, printedBanner);
+      	   	//刷新IOC容器，即refresh()
+      	   	refreshContext(context);
+      	   	afterRefresh(context, applicationArguments);
+      	   	//时间监控停止计时
+      	   	stopWatch.stop();
+      	   	if (this.logStartupInfo) {
+      	   	   new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
+      	   	}
+      	   	listeners.started(context);
+      	   	//调用所有runner的run()方法
+      	   	callRunners(context, applicationArguments);
+      	}
+      	catch (Throwable ex) {
+      	   	handleRunFailure(context, ex, listeners);
+      	   	throw new IllegalStateException(ex);
+      	}
+   	
+      	try {
+      	   	listeners.running(context);
+      	}
+      	catch (Throwable ex) {
+      	   	handleRunFailure(context, ex, null);
+      	   throw new IllegalStateException(ex);
+      	}
+      	return context;
    }
    ```
 

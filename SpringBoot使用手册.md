@@ -142,7 +142,7 @@ private String port;
 spring:
   resources:
     static-locations: [classpath:/haha/]
-    add-mappings: false   # 设置为false禁用所有静态资源规则，默认未true
+    add-mappings: false   # 设置为false禁用所有静态资源规则，默认wtrue
 ```
 
 
@@ -1471,6 +1471,15 @@ com.spongehah.boot.listeners.MySpringApplicationRunListener
 
 ## 5.16 JVM本地缓存-Caffeine
 
+引入依赖：
+
+```xml
+<dependency>
+    <groupId>com.github.ben-manes.caffeine</groupId>
+    <artifactId>caffeine</artifactId>
+</dependency>
+```
+
 构建cache对象：
 
 ```java
@@ -1648,6 +1657,13 @@ public class DictListener extends AnalysisEventListener<DictEeVo> {
 > 大数据量读写：
 > 思路：采用分批并且采用JDBC批量操作快于MyBatis批量操作
 > 参考文章：[百万数据Excel导入导出解决方案](https://mp.weixin.qq.com/s/7eg0eqLiUui8-5XQJuAwOQ)
+
+## 5.18 常用测试途径
+
+1. 单元测试
+2. Restful API
+3. Swagger
+4. 启动类继承CommandLineRunner
 
 # 6 数据访问
 
